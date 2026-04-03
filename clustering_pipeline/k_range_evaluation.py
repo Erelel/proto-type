@@ -9,8 +9,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from constants import (
+    DEFAULT_CSV_DIR,
+    DEFAULT_IMAGE_DIR,
+    DEFAULT_MAIN_CSV,
+    resolve_project_path,
+)
 from modeling import fit_cluster_model
-from preprocessing import build_raw_pipeline, load_and_preprocess
+from preprocessing import build_minmax_pipeline, load_and_preprocess
 
 
 def evaluate_k_range(csv_path: Path, k_min: int, k_max: int) -> tuple[pd.DataFrame, dict]:
@@ -20,7 +26,7 @@ def evaluate_k_range(csv_path: Path, k_min: int, k_max: int) -> tuple[pd.DataFra
         raise ValueError("k_max must be greater than or equal to k_min.")
 
     X, _, metadata = load_and_preprocess(csv_path)
-    X_scaled, _ = build_raw_pipeline(X)
+    X_scaled, _ = build_minmax_pipeline(X)
 
     rows: list[dict] = []
     for k in range(k_min, k_max + 1):
@@ -85,7 +91,7 @@ def main() -> None:
     parser.add_argument(
         "--csv",
         type=Path,
-        default=Path("mendeley_v4.csv"),
+        default=DEFAULT_MAIN_CSV,
         help="Input CSV path",
     )
     parser.add_argument("--k-min", type=int, default=3, help="Minimum k value")
@@ -93,24 +99,28 @@ def main() -> None:
     parser.add_argument(
         "--csv-dir",
         type=Path,
-        default=Path("result") / "0402_csv",
+        default=DEFAULT_CSV_DIR,
         help="Directory for CSV output",
     )
     parser.add_argument(
         "--image-dir",
         type=Path,
-        default=Path("result") / "0402_image",
+        default=DEFAULT_IMAGE_DIR,
         help="Directory for plot output",
     )
     args = parser.parse_args()
 
-    metrics_df, metadata = evaluate_k_range(args.csv, args.k_min, args.k_max)
+    csv_path = resolve_project_path(args.csv)
+    csv_dir = resolve_project_path(args.csv_dir)
+    image_dir = resolve_project_path(args.image_dir)
 
-    args.csv_dir.mkdir(parents=True, exist_ok=True)
-    args.image_dir.mkdir(parents=True, exist_ok=True)
+    metrics_df, metadata = evaluate_k_range(csv_path, args.k_min, args.k_max)
 
-    csv_output = args.csv_dir / f"kmeans_k_{args.k_min}_{args.k_max}_metrics.csv"
-    image_output = args.image_dir / f"kmeans_elbow_like_k_{args.k_min}_{args.k_max}.png"
+    csv_dir.mkdir(parents=True, exist_ok=True)
+    image_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_output = csv_dir / f"kmeans_k_{args.k_min}_{args.k_max}_metrics.csv"
+    image_output = image_dir / f"kmeans_elbow_like_k_{args.k_min}_{args.k_max}.png"
 
     metrics_df.to_csv(csv_output, index=False)
     plot_elbow_like_diagnostics(metrics_df, image_output)
@@ -119,7 +129,7 @@ def main() -> None:
     best_dbi_row = metrics_df.loc[metrics_df["davies_bouldin"].idxmin()]
 
     print("=== Preprocessing Summary ===")
-    print(f"Rows used: {metadata['final_rows']}")
+    print(f"Rows after dropna: {metadata['final_rows']}")
     print(f"Derived features: {metadata['used_columns']}")
     print(f"Log transform applied: {metadata['log_transform_applied']}")
 

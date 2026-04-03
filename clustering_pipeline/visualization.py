@@ -6,51 +6,97 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from constants import SKEWNESS_THRESHOLD
+from constants import MINMAX_FEATURE_RANGE
 
 
-def _bias_label(skew_value: float) -> str:
-    if skew_value > SKEWNESS_THRESHOLD:
-        return "right-skewed"
-    if skew_value < -SKEWNESS_THRESHOLD:
-        return "left-skewed"
-    return "near-balanced"
+def _validate_derived_columns(X_derived: pd.DataFrame) -> None:
+    required_columns = {"force_intensity", "switch_frequency"}
+    if not required_columns.issubset(X_derived.columns):
+        raise ValueError(
+            "X_derived must include force_intensity and switch_frequency columns."
+        )
 
 
-def plot_source_histograms(
-    source_df: pd.DataFrame,
+def plot_derived_feature_histograms(
+    X_derived: pd.DataFrame,
     output_path: Path,
-    skewness: dict[str, float],
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    _validate_derived_columns(X_derived)
 
     columns = [
-        "foreground_app_duration_sum",
-        "foreground_app_switch_per_hour",
-    ]
-    titles = [
-        "Source for force_intensity",
-        "Source for switch_frequency",
+        "force_intensity",
+        "switch_frequency",
     ]
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-    for ax, column, title in zip(axes, columns, titles):
-        values = source_df[column].to_numpy(dtype=float)
-        skew_value = float(skewness[column])
+    for ax, column in zip(axes, columns):
+        values = X_derived[column].to_numpy(dtype=float)
 
         ax.hist(values, bins=60, color="#2A6F97", alpha=0.85, edgecolor="white")
         ax.axvline(values.mean(), color="#D62828", linestyle="--", linewidth=1.5)
         ax.axvline(np.median(values), color="#1B4332", linestyle=":", linewidth=1.5)
 
-        ax.set_title(
-            f"{title}\nSkew={skew_value:.2f} ({_bias_label(skew_value)})",
-            fontsize=11,
-        )
+        ax.set_title(f"{column} (raw derived)", fontsize=11)
         ax.set_xlabel(column)
         ax.set_ylabel("Count")
 
-    fig.suptitle("Histogram-based skewness check for source variables", fontsize=13)
+    fig.suptitle("Derived Feature Histograms", fontsize=13)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=180)
+    plt.close(fig)
+
+
+def plot_minmax_scaled_derived_histograms(
+    X_derived: pd.DataFrame,
+    X_minmax_scaled: np.ndarray,
+    output_path: Path,
+) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _validate_derived_columns(X_derived)
+
+    if X_minmax_scaled.shape != X_derived.shape:
+        raise ValueError("X_minmax_scaled must have the same shape as X_derived.")
+
+    scaled_df = pd.DataFrame(
+        X_minmax_scaled,
+        columns=X_derived.columns,
+        index=X_derived.index,
+    )
+
+    columns = ["force_intensity", "switch_frequency"]
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+    for col_idx, column in enumerate(columns):
+        raw_values = X_derived[column].to_numpy(dtype=float)
+        scaled_values = scaled_df[column].to_numpy(dtype=float)
+
+        axes[0, col_idx].hist(
+            raw_values, bins=60, color="#2A6F97", alpha=0.85, edgecolor="white"
+        )
+        axes[0, col_idx].set_title(f"{column} (raw)")
+        axes[0, col_idx].set_xlabel(column)
+        axes[0, col_idx].set_ylabel("Count")
+
+        axes[1, col_idx].hist(
+            scaled_values,
+            bins=60,
+            color="#F4A261",
+            alpha=0.85,
+            edgecolor="white",
+        )
+        axes[1, col_idx].set_title(
+            f"{column} (MinMax scaled: {MINMAX_FEATURE_RANGE[0]:.0f} to {MINMAX_FEATURE_RANGE[1]:.0f})"
+        )
+        axes[1, col_idx].set_xlabel(column)
+        axes[1, col_idx].set_ylabel("Count")
+        axes[1, col_idx].set_xlim(
+            MINMAX_FEATURE_RANGE[0] - 0.02,
+            MINMAX_FEATURE_RANGE[1] + 0.02,
+        )
+
+    fig.suptitle("Derived Features: Raw vs MinMax Histogram Change", fontsize=13)
     plt.tight_layout()
     fig.savefig(output_path, dpi=180)
     plt.close(fig)
@@ -63,12 +109,7 @@ def plot_kmeans_clusters_on_derived_features(
     centroids: np.ndarray | None = None,
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    required_columns = {"force_intensity", "switch_frequency"}
-    if not required_columns.issubset(X_derived.columns):
-        raise ValueError(
-            "X_derived must include force_intensity and switch_frequency columns."
-        )
+    _validate_derived_columns(X_derived)
 
     fig, ax = plt.subplots(figsize=(9, 7))
 
@@ -100,81 +141,6 @@ def plot_kmeans_clusters_on_derived_features(
     ax.set_ylabel("switch_frequency")
     fig.colorbar(scatter, ax=ax, label="Cluster ID")
 
-    plt.tight_layout()
-    fig.savefig(output_path, dpi=180)
-    plt.close(fig)
-
-
-def plot_minmax_vs_standard_kmeans_compare(
-    X_derived: pd.DataFrame,
-    labels_minmax: np.ndarray,
-    labels_standard: np.ndarray,
-    output_path: Path,
-    centroids_minmax: np.ndarray | None = None,
-    centroids_standard: np.ndarray | None = None,
-) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    required_columns = {"force_intensity", "switch_frequency"}
-    if not required_columns.issubset(X_derived.columns):
-        raise ValueError(
-            "X_derived must include force_intensity and switch_frequency columns."
-        )
-
-    fig, axes = plt.subplots(1, 2, figsize=(16, 7), sharex=True, sharey=True)
-    x = X_derived["force_intensity"]
-    y = X_derived["switch_frequency"]
-
-    scatter_minmax = axes[0].scatter(
-        x,
-        y,
-        c=labels_minmax,
-        cmap="tab10",
-        alpha=0.45,
-        s=16,
-        linewidths=0,
-    )
-    axes[0].set_title("MinMaxScaler + KMeans")
-    axes[0].set_xlabel("force_intensity")
-    axes[0].set_ylabel("switch_frequency")
-    fig.colorbar(scatter_minmax, ax=axes[0], label="Cluster ID")
-
-    if centroids_minmax is not None:
-        axes[0].scatter(
-            centroids_minmax[:, 0],
-            centroids_minmax[:, 1],
-            marker="X",
-            s=260,
-            c="black",
-            edgecolors="white",
-            linewidths=1.0,
-        )
-
-    scatter_standard = axes[1].scatter(
-        x,
-        y,
-        c=labels_standard,
-        cmap="tab10",
-        alpha=0.45,
-        s=16,
-        linewidths=0,
-    )
-    axes[1].set_title("StandardScaler + KMeans")
-    axes[1].set_xlabel("force_intensity")
-    fig.colorbar(scatter_standard, ax=axes[1], label="Cluster ID")
-
-    if centroids_standard is not None:
-        axes[1].scatter(
-            centroids_standard[:, 0],
-            centroids_standard[:, 1],
-            marker="X",
-            s=260,
-            c="black",
-            edgecolors="white",
-            linewidths=1.0,
-        )
-
-    fig.suptitle("minmax_vs_standard_kmeans_compare", fontsize=14)
     plt.tight_layout()
     fig.savefig(output_path, dpi=180)
     plt.close(fig)

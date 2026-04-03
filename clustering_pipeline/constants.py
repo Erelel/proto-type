@@ -1,8 +1,23 @@
+from datetime import datetime
 from pathlib import Path
 
 RANDOM_STATE = 42
 DEFAULT_N_CLUSTERS = 4
 SKEWNESS_THRESHOLD = 1.0
+
+PIPELINE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = PIPELINE_DIR.parent
+DEFAULT_RESULT_DIR = PROJECT_ROOT / "result"
+RUN_DATE_TAG = datetime.now().strftime("%m%d")
+DEFAULT_IMAGE_DIR = DEFAULT_RESULT_DIR / f"{RUN_DATE_TAG}_image"
+DEFAULT_CSV_DIR = DEFAULT_RESULT_DIR / f"{RUN_DATE_TAG}_csv"
+DEFAULT_MAIN_CSV = PROJECT_ROOT / "mendeley_v5.csv"
+
+MINMAX_FEATURE_RANGE = (0.0, 1.0)
+
+
+def resolve_project_path(path: Path) -> Path:
+    return path if path.is_absolute() else PROJECT_ROOT / path
 
 REQUIRED_SOURCE_COLUMNS = [
     "foreground_app_duration_sum",

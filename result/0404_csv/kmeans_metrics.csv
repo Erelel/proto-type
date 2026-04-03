@@ -1,0 +1,2 @@
+scaler,feature_range,model,n_clusters,silhouette,davies_bouldin
+minmax,"(0.0, 1.0)",KMeans,4,0.5806303835958916,0.6113845732894693

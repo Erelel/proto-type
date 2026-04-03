@@ -1,3 +1,0 @@
-scaler,model,n_clusters,silhouette,davies_bouldin
-minmax,KMeans,4,0.5797229564168316,0.6199039590790782
-standard,KMeans,4,0.5821990794177352,0.592109730433938

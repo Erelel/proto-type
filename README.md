@@ -6,8 +6,7 @@
   - `force_intensity`
   - `switch_frequency`
 - 비교 대상
-  - `MinMaxScaler + KMeans`
-  - `StandardScaler + KMeans`
+   - `MinMaxScaler + KMeans`
 
 ## 1. 폴더 구성
 
@@ -40,13 +39,13 @@ CSV에 아래 컬럼이 반드시 있어야 합니다.
 5. 파생 변수 생성
    - `force_intensity = duration_base * concentration_ratio`
    - `switch_frequency = switch_base * (1 - concentration_ratio)`
-6. 같은 파생 변수에 대해 스케일러 2종 비교
-   - MinMaxScaler
-   - StandardScaler
+6. MinMaxScaler 적용
 7. KMeans 학습 및 지표 계산
    - Silhouette (높을수록 좋음)
    - Davies-Bouldin Index (낮을수록 좋음)
 8. 시각화 및 결과 저장
+
+출력 경로는 실행 위치와 무관하게 프로젝트 루트의 `result/` 하위로 정규화됩니다.
 
 ## 4. 설치
 
@@ -60,29 +59,29 @@ pip install numpy pandas matplotlib scikit-learn
 
 ### 5.1 단일 k 실행 (`main.py`)
 
-`clustering_pipeline` 폴더에서 실행 예시:
+프로젝트 루트(`qwer`)에서 실행 예시:
 
 ```bash
-python main.py --csv ..\mendeley_v5.csv --k 4 --out-dir result/0402_image
+python clustering_pipeline/main.py --csv mendeley_v5.csv --k 4 --out-dir result/0402_image
 ```
 
 옵션:
 
-- `--csv`: 입력 CSV 경로 (기본: `mendeley_v4.csv`)
+- `--csv`: 입력 CSV 경로 (기본: `mendeley_v5.csv`)
 - `--k`: 클러스터 개수 (기본: `4`)
-- `--out-dir`: 출력 폴더 (기본: `result/0402_image`)
+- `--out-dir`: 출력 폴더 (기본: 프로젝트 루트 `result/0402_image`)
 
 생성 파일:
 
-- `source_histogram_skewness.png`
+- `derived_feature_histograms.png`
+- `derived_feature_histograms_minmax.png`
 - `kmeans_force_switch_clusters.png`
-- `minmax_vs_standard_kmeans_compare.png`
 - `kmeans_metrics.csv`
 
 ### 5.2 k 범위 평가 (`k_range_evaluation.py`)
 
 ```bash
-python k_range_evaluation.py --csv ..\mendeley_v5.csv --k-min 3 --k-max 8 --csv-dir result/0402_csv --image-dir result/0402_image
+python clustering_pipeline/k_range_evaluation.py --csv mendeley_v5.csv --k-min 3 --k-max 8 --csv-dir result/0402_csv --image-dir result/0402_image
 ```
 
 옵션:
@@ -101,15 +100,15 @@ python k_range_evaluation.py --csv ..\mendeley_v5.csv --k-min 3 --k-max 8 --csv-
 
 아래 이미지는 현재 폴더의 `result/0402_image/`에 저장된 결과를 그대로 참조합니다.
 
-![Source histogram skewness](result/0402_image/source_histogram_skewness.png)
+![Derived feature histograms](result/0402_image/derived_feature_histograms.png)
+
+![Derived feature histograms after MinMax](result/0402_image/derived_feature_histograms_minmax.png)
 
 ![KMeans clusters on derived features](result/0402_image/kmeans_force_switch_clusters.png)
-
-![MinMax vs Standard KMeans compare](result/0402_image/minmax_vs_standard_kmeans_compare.png)
 
 ## 7. 해석 팁
 
 - 실루엣 점수는 군집 분리/응집이 좋을수록 상승합니다.
 - DBI는 군집 간 분리가 좋고 군집 내부 응집이 높을수록 감소합니다.
 - 두 지표를 함께 보고 k를 선택하는 것이 안정적입니다.
-- 스케일러에 따라 경계와 중심(centroid) 위치가 달라질 수 있으므로, 동일 데이터라도 결과 비교가 필요합니다.
+- MinMax 적용 후 분포 압축 정도를 히스토그램으로 함께 확인하면 설명력 확보에 도움이 됩니다.

@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 from constants import (
     DERIVED_FEATURE_COLUMNS,
+    MINMAX_FEATURE_RANGE,
     REQUIRED_SOURCE_COLUMNS,
     SKEWNESS_THRESHOLD,
 )
@@ -54,6 +55,7 @@ def load_and_preprocess(csv_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, dic
 
     source_df = df[REQUIRED_SOURCE_COLUMNS].copy()
     source_df = source_df.dropna(axis=0, how="any")
+    final_rows = len(source_df)
 
     source_skewness = {
         col: float(source_df[col].skew()) for col in SKEW_ANALYSIS_COLUMNS
@@ -84,8 +86,8 @@ def load_and_preprocess(csv_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, dic
 
     metadata = {
         "initial_rows": initial_rows,
-        "final_rows": len(source_df),
-        "dropped_nan_rows": initial_rows - len(source_df),
+        "final_rows": final_rows,
+        "dropped_nan_rows": initial_rows - final_rows,
         "used_columns": DERIVED_FEATURE_COLUMNS,
         "source_skewness": source_skewness,
         "skew_direction": skew_direction,
@@ -96,19 +98,11 @@ def load_and_preprocess(csv_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, dic
     return X, source_df, metadata
 
 
-def build_raw_pipeline(
+def build_minmax_pipeline(
     X: pd.DataFrame,
     scaler_cls: type = MinMaxScaler,
+    feature_range: tuple[float, float] = MINMAX_FEATURE_RANGE,
 ) -> tuple[np.ndarray, object]:
-    scaler = scaler_cls()
-    X_scaled = scaler.fit_transform(X)
-    return X_scaled, scaler
-
-
-def build_standard_pipeline(
-    X: pd.DataFrame,
-    scaler_cls: type = StandardScaler,
-) -> tuple[np.ndarray, object]:
-    scaler = scaler_cls()
+    scaler = scaler_cls(feature_range=feature_range)
     X_scaled = scaler.fit_transform(X)
     return X_scaled, scaler
