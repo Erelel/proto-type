@@ -25,7 +25,7 @@ REQUIRED_SOURCE_COLUMNS = [
     "concentration_ratio",
 ]
 
-DERIVED_FEATURE_COLUMNS = ["force_intensity", "switch_frequency"]
+DERIVED_FEATURE_COLUMNS = ["focus_intensity", "switch_frequency"]
 
 DROP_COLUMNS = [
     "device_id",

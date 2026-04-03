@@ -42,7 +42,7 @@ def _build_derived_features(
         switch_base = np.log1p(switch_base)
 
     derived = pd.DataFrame(index=source_df.index)
-    derived["force_intensity"] = duration_base * source_df["concentration_ratio"]
+    derived["focus_intensity"] = duration_base * source_df["concentration_ratio"]
     derived["switch_frequency"] = switch_base * (1 - source_df["concentration_ratio"])
     return derived
 

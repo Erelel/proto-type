@@ -3,7 +3,7 @@
 모바일 앱 사용 로그에서 파생 변수(derived features)를 만들고, KMeans 클러스터링 결과를 시각화/평가하는 파이프라인입니다.
 
 - 주요 파생 변수
-  - `force_intensity`
+  - `focus_intensity`
   - `switch_frequency`
 - 비교 대상
    - `MinMaxScaler + KMeans`
@@ -37,7 +37,7 @@ CSV에 아래 컬럼이 반드시 있어야 합니다.
    - `foreground_app_switch_per_hour`
 4. 두 변수 모두 강한 우측 치우침(`skew > 1.0`)이고 음수가 없으면 `log1p` 적용
 5. 파생 변수 생성
-   - `force_intensity = duration_base * concentration_ratio`
+   - `focus_intensity = duration_base * concentration_ratio`
    - `switch_frequency = switch_base * (1 - concentration_ratio)`
 6. MinMaxScaler 적용
 7. KMeans 학습 및 지표 계산
@@ -75,7 +75,7 @@ python clustering_pipeline/main.py --csv mendeley_v5.csv --k 4 --out-dir result/
 
 - `derived_feature_histograms.png`
 - `derived_feature_histograms_minmax.png`
-- `kmeans_force_switch_clusters.png`
+- `kmeans_focus_switch_clusters.png`
 - `kmeans_metrics.csv`
 
 ### 5.2 k 범위 평가 (`k_range_evaluation.py`)
@@ -104,7 +104,7 @@ python clustering_pipeline/k_range_evaluation.py --csv mendeley_v5.csv --k-min 3
 
 ![Derived feature histograms after MinMax](result/0402_image/derived_feature_histograms_minmax.png)
 
-![KMeans clusters on derived features](result/0402_image/kmeans_force_switch_clusters.png)
+![KMeans clusters on derived features](result/0402_image/kmeans_focus_switch_clusters.png)
 
 ## 7. 해석 팁
 

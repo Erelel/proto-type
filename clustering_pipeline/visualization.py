@@ -10,10 +10,10 @@ from constants import MINMAX_FEATURE_RANGE
 
 
 def _validate_derived_columns(X_derived: pd.DataFrame) -> None:
-    required_columns = {"force_intensity", "switch_frequency"}
+    required_columns = {"focus_intensity", "switch_frequency"}
     if not required_columns.issubset(X_derived.columns):
         raise ValueError(
-            "X_derived must include force_intensity and switch_frequency columns."
+            "X_derived must include focus_intensity and switch_frequency columns."
         )
 
 
@@ -25,7 +25,7 @@ def plot_derived_feature_histograms(
     _validate_derived_columns(X_derived)
 
     columns = [
-        "force_intensity",
+        "focus_intensity",
         "switch_frequency",
     ]
 
@@ -65,7 +65,7 @@ def plot_minmax_scaled_derived_histograms(
         index=X_derived.index,
     )
 
-    columns = ["force_intensity", "switch_frequency"]
+    columns = ["focus_intensity", "switch_frequency"]
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
     for col_idx, column in enumerate(columns):
@@ -114,7 +114,7 @@ def plot_kmeans_clusters_on_derived_features(
     fig, ax = plt.subplots(figsize=(9, 7))
 
     scatter = ax.scatter(
-        X_derived["force_intensity"],
+        X_derived["focus_intensity"],
         X_derived["switch_frequency"],
         c=labels,
         cmap="tab10",
@@ -137,7 +137,7 @@ def plot_kmeans_clusters_on_derived_features(
         ax.legend(loc="upper right")
 
     ax.set_title("KMeans clusters on derived features")
-    ax.set_xlabel("force_intensity")
+    ax.set_xlabel("focus_intensity")
     ax.set_ylabel("switch_frequency")
     fig.colorbar(scatter, ax=ax, label="Cluster ID")
 

@@ -40,7 +40,7 @@ def main(csv_path: Path, n_clusters: int, output_dir: Path) -> None:
 
     derived_hist_output = output_dir / "derived_feature_histograms.png"
     minmax_hist_output = output_dir / "derived_feature_histograms_minmax.png"
-    cluster_output = output_dir / "kmeans_force_switch_clusters.png"
+    cluster_output = output_dir / "kmeans_focus_switch_clusters.png"
     metrics_output = output_dir / "kmeans_metrics.csv"
 
     plot_derived_feature_histograms(X_derived=X, output_path=derived_hist_output)
