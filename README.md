@@ -65,9 +65,16 @@ pip install numpy pandas matplotlib scikit-learn
 python clustering_pipeline/main.py --csv mendeley_v5.csv --k 4 --out-dir result/0402_image
 ```
 
+`mendeley_v5`로 학습한 모델을 수집 데이터에 그대로 적용해 평가하려면:
+
+```bash
+python clustering_pipeline/main.py --csv mendeley_v5.csv --collected-csv collected_data.csv --k 4 --out-dir result/0402_image
+```
+
 옵션:
 
 - `--csv`: 입력 CSV 경로 (기본: `mendeley_v5.csv`)
+- `--collected-csv`: 선택 입력. `--csv`로 학습한 KMeans를 동결(frozen)한 채 수집 데이터에 적용하여 평가
 - `--k`: 클러스터 개수 (기본: `4`)
 - `--out-dir`: 출력 폴더 (기본: 프로젝트 루트 `result/0402_image`)
 
@@ -76,7 +83,12 @@ python clustering_pipeline/main.py --csv mendeley_v5.csv --k 4 --out-dir result/
 - `derived_feature_histograms.png`
 - `derived_feature_histograms_minmax.png`
 - `kmeans_focus_switch_clusters.png`
+- `kmeans_focus_switch_clusters_collected.png` (`--collected-csv` 사용 시)
 - `kmeans_metrics.csv`
+- `kmeans_cluster_distribution.csv`
+
+`--collected-csv`를 사용하면 `kmeans_metrics.csv`와 `kmeans_cluster_distribution.csv`에
+학습 데이터(`baseline_train`)와 수집 데이터(`collected_eval`) 결과가 함께 저장됩니다.
 
 ### 5.2 k 범위 평가 (`k_range_evaluation.py`)
 

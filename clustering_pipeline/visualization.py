@@ -2,6 +2,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib import colors as mcolors
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -111,18 +112,31 @@ def plot_kmeans_clusters_on_derived_features(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     _validate_derived_columns(X_derived)
 
+    labels_array = np.asarray(labels, dtype=int)
+    if labels_array.shape[0] != len(X_derived):
+        raise ValueError("labels length must match number of rows in X_derived.")
+
+    unique_labels = np.unique(labels_array)
+    min_label = int(unique_labels.min())
+    max_label = int(unique_labels.max())
+    boundaries = np.arange(min_label - 0.5, max_label + 1.5, 1.0)
+    cmap = plt.get_cmap("tab10", max_label - min_label + 1)
+    norm = mcolors.BoundaryNorm(boundaries, cmap.N)
+
     fig, ax = plt.subplots(figsize=(9, 7))
 
     scatter = ax.scatter(
         X_derived["focus_intensity"],
         X_derived["switch_frequency"],
-        c=labels,
-        cmap="tab10",
-        alpha=0.45,
-        s=16,
+        c=labels_array,
+        cmap=cmap,
+        norm=norm,
+        alpha=0.35,
+        s=10,
         linewidths=0,
     )
 
+    summary_anchor_y = 0.98
     if centroids is not None:
         ax.scatter(
             centroids[:, 0],
@@ -135,11 +149,37 @@ def plot_kmeans_clusters_on_derived_features(
             label="Centroids",
         )
         ax.legend(loc="upper right")
+        summary_anchor_y = 0.90
 
     ax.set_title("KMeans clusters on derived features")
     ax.set_xlabel("focus_intensity")
     ax.set_ylabel("switch_frequency")
-    fig.colorbar(scatter, ax=ax, label="Cluster ID")
+
+    cluster_counts = pd.Series(labels_array).value_counts().sort_index()
+    cluster_ratios = cluster_counts / cluster_counts.sum()
+    summary_text = "\n".join(
+        f"{cluster_id}: n={int(count)} ({cluster_ratios.loc[cluster_id]:.1%})"
+        for cluster_id, count in cluster_counts.items()
+    )
+    ax.text(
+        0.98,
+        summary_anchor_y,
+        summary_text,
+        transform=ax.transAxes,
+        va="top",
+        ha="right",
+        fontsize=9,
+        bbox={"boxstyle": "round", "facecolor": "white", "alpha": 0.8},
+    )
+
+    colorbar = fig.colorbar(
+        scatter,
+        ax=ax,
+        label="Cluster ID",
+        boundaries=boundaries,
+        ticks=unique_labels.tolist(),
+    )
+    colorbar.set_ticklabels([str(int(label)) for label in unique_labels])
 
     plt.tight_layout()
     fig.savefig(output_path, dpi=180)

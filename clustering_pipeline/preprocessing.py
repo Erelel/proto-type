@@ -47,7 +47,10 @@ def _build_derived_features(
     return derived
 
 
-def load_and_preprocess(csv_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+def load_and_preprocess(
+    csv_path: Path,
+    force_log_transform: bool | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     df = pd.read_csv(csv_path)
     initial_rows = len(df)
 
@@ -68,19 +71,33 @@ def load_and_preprocess(csv_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, dic
     }
 
     non_negative_for_log = all(source_df[col].min() >= 0 for col in SKEW_ANALYSIS_COLUMNS)
-    use_log_transform = all(right_skew_flags.values()) and non_negative_for_log
+    auto_use_log_transform = all(right_skew_flags.values()) and non_negative_for_log
+
+    if force_log_transform is None:
+        use_log_transform = auto_use_log_transform
+    elif force_log_transform:
+        if not non_negative_for_log:
+            raise ValueError(
+                "force_log_transform=True requires non-negative source variables for log1p."
+            )
+        use_log_transform = True
+    else:
+        use_log_transform = False
 
     log_transform_block_reason = None
-    if not all(right_skew_flags.values()):
-        log_transform_block_reason = (
-            f"At least one source variable is not strongly right-skewed "
-            f"(threshold={SKEWNESS_THRESHOLD})."
-        )
-    elif not non_negative_for_log:
-        log_transform_block_reason = (
-            "At least one source variable contains values below 0, "
-            "so log1p would be invalid or unstable."
-        )
+    if not use_log_transform:
+        if force_log_transform is False:
+            log_transform_block_reason = "log1p was explicitly disabled by caller."
+        elif not all(right_skew_flags.values()):
+            log_transform_block_reason = (
+                f"At least one source variable is not strongly right-skewed "
+                f"(threshold={SKEWNESS_THRESHOLD})."
+            )
+        elif not non_negative_for_log:
+            log_transform_block_reason = (
+                "At least one source variable contains values below 0, "
+                "so log1p would be invalid or unstable."
+            )
 
     X = _build_derived_features(source_df, use_log_transform)
 
@@ -92,6 +109,8 @@ def load_and_preprocess(csv_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, dic
         "source_skewness": source_skewness,
         "skew_direction": skew_direction,
         "right_skew_flags": right_skew_flags,
+        "auto_log_transform": auto_use_log_transform,
+        "force_log_transform": force_log_transform,
         "log_transform_applied": use_log_transform,
         "log_transform_block_reason": log_transform_block_reason,
     }
