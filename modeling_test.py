@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import linear_sum_assignment
+from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.metrics import davies_bouldin_score, silhouette_score
 from sklearn.metrics.pairwise import pairwise_distances
@@ -124,3 +125,101 @@ def fit_cluster_model(
         "centroids_original": centroids_original,
         "label_mapping": label_mapping,
     }
+
+
+def _minmax_scale(value: float, min_val: float, max_val: float) -> float:
+    """Manual MinMax scaling with safe zero-division handling."""
+    if max_val == min_val:
+        return 0.0
+    return (value - min_val) / (max_val - min_val)
+
+
+def predict_cluster(raw_data: dict, saved_params: dict) -> int:
+    """
+    Stateless inference using only saved parameters.
+
+    Steps:
+        1) Derived feature calculation (+ optional log1p)
+        2) Manual MinMax scaling via saved scaler params
+        3) Nearest centroid mapping with Euclidean distance
+    """
+    duration_base = raw_data["foreground_app_duration_sum"]
+    switch_base = raw_data["foreground_app_switch_per_hour"]
+
+    if saved_params.get("log_transform_applied", False):
+        duration_base = np.log1p(duration_base)
+        switch_base = np.log1p(switch_base)
+
+    concentration_ratio = raw_data["concentration_ratio"]
+    focus_intensity = duration_base * concentration_ratio
+    switch_frequency = switch_base * (1.0 - concentration_ratio)
+
+    scaler_params = saved_params["scaler_params"]
+    focus_scaled = _minmax_scale(
+        focus_intensity,
+        scaler_params["focus_intensity"]["min"],
+        scaler_params["focus_intensity"]["max"],
+    )
+    switch_scaled = _minmax_scale(
+        switch_frequency,
+        scaler_params["switch_frequency"]["min"],
+        scaler_params["switch_frequency"]["max"],
+    )
+
+    vector = np.array([focus_scaled, switch_scaled], dtype=float)
+    centroids = np.array(saved_params["centroids"], dtype=float)
+    distances = np.linalg.norm(centroids - vector, axis=1)
+    return int(np.argmin(distances))
+
+
+def align_clusters(
+    old_centroids: np.ndarray, new_centroids: np.ndarray
+) -> tuple[dict[int, int], np.ndarray]:
+    """
+    Align newly trained clusters to previous cluster IDs via Hungarian algorithm.
+
+    Returns:
+        mapping: {new_label: old_label}
+        reordered_new_centroids: new centroids in old-label order
+    """
+    if old_centroids.shape != new_centroids.shape:
+        raise ValueError("old_centroids and new_centroids must have the same shape.")
+
+    cost_matrix = cdist(old_centroids, new_centroids)
+    old_idx, new_idx = linear_sum_assignment(cost_matrix)
+
+    mapping = {int(new_id): int(old_id) for old_id, new_id in zip(old_idx, new_idx)}
+    reordered_new_centroids = np.empty_like(new_centroids)
+    reordered_new_centroids[old_idx] = new_centroids[new_idx]
+    return mapping, reordered_new_centroids
+
+
+if __name__ == "__main__":
+    # Mock data for Cloud Function usage simulation.
+    raw_data_example = {
+        "foreground_app_duration_sum": 180.0,
+        "foreground_app_switch_per_hour": 12.0,
+        "concentration_ratio": 0.65,
+    }
+    saved_params_example = {
+        "log_transform_applied": True,
+        "scaler_params": {
+            "focus_intensity": {"min": 0.0, "max": 4.5},
+            "switch_frequency": {"min": 0.0, "max": 3.0},
+        },
+        "centroids": [
+            [0.1, 0.2],
+            [0.3, 0.7],
+            [0.8, 0.4],
+            [0.9, 0.9],
+        ],
+    }
+
+    predicted = predict_cluster(raw_data_example, saved_params_example)
+    print("Predicted cluster:", predicted)
+
+    old_c = np.array([[0.1, 0.2], [0.4, 0.8], [0.7, 0.5], [0.9, 0.9]])
+    new_c = np.array([[0.42, 0.79], [0.12, 0.22], [0.88, 0.92], [0.68, 0.52]])
+    mapping, reordered = align_clusters(old_c, new_c)
+    print("Mapping (new -> old):", mapping)
+    print("Reordered centroids:\n", reordered)

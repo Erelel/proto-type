@@ -1,5 +1,8 @@
 # Clustering Pipeline
 
+이 문서는 오프라인 재학습 파이프라인 설명에 집중합니다.
+Firebase Cloud Functions용 stateless 추론/헝가리안 매핑은 루트의 README를 참고하세요.
+
 모바일 앱 사용 로그에서 파생 변수(derived features)를 만들고, KMeans 클러스터링 결과를 시각화/평가하는 파이프라인입니다.
 
 - 주요 파생 변수

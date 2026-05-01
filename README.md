@@ -1,12 +1,34 @@
-# Clustering Pipeline
+# Clustering Pipeline + Stateless Inference
 
-모바일 앱 사용 로그에서 파생 변수(derived features)를 만들고, KMeans 클러스터링 결과를 시각화/평가하는 파이프라인입니다.
+모바일 앱 사용 로그에서 파생 변수(derived features)를 만들고, KMeans 클러스터링 결과를 시각화/평가하는 파이프라인과
+Firebase Cloud Functions 환경에서 **모델 파일 없이 파라미터만으로 예측**하는 stateless 추론 코드를 함께 정리합니다.
 
 - 주요 파생 변수
-  - `focus_intensity`
-  - `switch_frequency`
+   - `focus_intensity`
+   - `switch_frequency`
 - 비교 대상
    - `MinMaxScaler + KMeans`
+
+## 0. 팀 전달용 핵심 요약
+
+### 0.1 반드시 전달해야 하는 코드
+
+- 오프라인 재학습 파이프라인
+   - `clustering_pipeline/preprocessing.py`: 입력 검증, log1p 판단, 파생 변수 생성
+   - `clustering_pipeline/modeling.py`: KMeans 학습 및 지표 계산
+   - `clustering_pipeline/main.py`: 단일 k 실행 엔트리
+   - `clustering_pipeline/k_range_evaluation.py`: k 범위 평가
+- 온라인 추론/매핑 함수 (모델 파일 없이 사용)
+   - `modeling_test.py`: `predict_cluster()`, `align_clusters()`
+
+### 0.2 파이프라인에서 꼭 필요한 부분
+
+- Day 0 실시간 추론: 저장된 `scaler_params`, `centroids`, `log_transform_applied`만 필요
+- Day 7+ 재학습: 새 KMeans 결과를 `align_clusters()`로 매핑해 군집 의미 보존
+- 결과 저장: 아래 파라미터는 반드시 저장/배포
+   - `scaler_params` (각 파생 변수 min/max)
+   - `centroids` (KMeans 중심점)
+   - `log_transform_applied` (bool)
 
 ## 1. 폴더 구성
 
@@ -16,9 +38,42 @@
 - `modeling.py`: KMeans 학습 및 지표 계산
 - `visualization.py`: 히스토그램/산점도/비교 시각화 생성
 - `constants.py`: 공통 상수 정의
-- `result/0402_image/`: 실행 결과 이미지/CSV 저장 폴더(기본)
+- `result/`: 실행 결과 이미지/CSV 저장 폴더(기본)
 
-## 2. 입력 데이터 요구사항
+## 2. Stateless 추론/매핑 사용법 (Cloud Functions)
+
+### 2.1 저장 파라미터 스키마
+
+```json
+{
+   "scaler_params": {
+      "focus_intensity": {"min": 0.0, "max": 4.5},
+      "switch_frequency": {"min": 0.0, "max": 3.0}
+   },
+   "centroids": [[0.1, 0.2], [0.3, 0.7], [0.8, 0.4], [0.9, 0.9]],
+   "log_transform_applied": true
+}
+```
+
+### 2.2 추론/매핑 함수 위치
+
+- `modeling_test.py`
+   - `predict_cluster(raw_data, saved_params)`
+   - `align_clusters(old_centroids, new_centroids)`
+
+### 2.3 동작 요약
+
+- `predict_cluster()`
+   - 파생 변수 생성 -> 필요 시 log1p -> 수동 MinMax -> 유클리디안 거리로 군집 결정
+- `align_clusters()`
+   - `cdist`로 비용 행렬 계산 -> 헝가리안 알고리즘으로 1:1 매핑
+
+### 2.4 Mock 테스트
+
+`modeling_test.py` 하단의 `__main__` 블록에 Cloud Function 호출을 가정한 Mock 테스트가 포함되어 있습니다.
+실서비스에서는 `raw_data`, `saved_params`를 JSON으로 받아 그대로 전달하면 됩니다.
+
+## 3. 입력 데이터 요구사항
 
 CSV에 아래 컬럼이 반드시 있어야 합니다.
 
@@ -28,7 +83,7 @@ CSV에 아래 컬럼이 반드시 있어야 합니다.
 
 `preprocessing.py`에서 위 3개 컬럼만 사용하며, 결측값(`NaN`)이 있는 행은 제거합니다.
 
-## 3. 파이프라인 동작 요약
+## 4. 파이프라인 동작 요약
 
 1. CSV 로드 및 필수 컬럼 검증
 2. 결측값 제거
@@ -47,33 +102,27 @@ CSV에 아래 컬럼이 반드시 있어야 합니다.
 
 출력 경로는 실행 위치와 무관하게 프로젝트 루트의 `result/` 하위로 정규화됩니다.
 
-## 4. 설치
+## 5. 설치
 
 Python 3.9+ 권장
 
 ```bash
-pip install numpy pandas matplotlib scikit-learn
+pip install numpy pandas matplotlib scikit-learn scipy
 ```
 
-## 5. 실행 방법
+## 6. 실행 방법
 
-### 5.1 단일 k 실행 (`main.py`)
+### 6.1 단일 k 실행 (`main.py`)
 
-프로젝트 루트(`qwer`)에서 실행 예시:
-
-```bash
-python clustering_pipeline/main.py --csv mendeley_v5.csv --k 4 --out-dir result/0402_image
-```
-
-`mendeley_v5`로 학습한 모델을 수집 데이터에 그대로 적용해 평가하려면:
+프로젝트 루트에서 실행 예시:
 
 ```bash
-python clustering_pipeline/main.py --csv mendeley_v5.csv --collected-csv collected_data.csv --k 4 --out-dir result/0402_image
+python clustering_pipeline/main.py --csv baseline_train.csv --k 4 --out-dir result/0402_image
 ```
 
 옵션:
 
-- `--csv`: 입력 CSV 경로 (기본: `mendeley_v5.csv`)
+- `--csv`: 입력 CSV 경로 (기본: `baseline_train.csv`)
 - `--collected-csv`: 선택 입력. `--csv`로 학습한 KMeans를 동결(frozen)한 채 수집 데이터에 적용하여 평가
 - `--k`: 클러스터 개수 (기본: `4`)
 - `--out-dir`: 출력 폴더 (기본: 프로젝트 루트 `result/0402_image`)
@@ -90,10 +139,10 @@ python clustering_pipeline/main.py --csv mendeley_v5.csv --collected-csv collect
 `--collected-csv`를 사용하면 `kmeans_metrics.csv`와 `kmeans_cluster_distribution.csv`에
 학습 데이터(`baseline_train`)와 수집 데이터(`collected_eval`) 결과가 함께 저장됩니다.
 
-### 5.2 k 범위 평가 (`k_range_evaluation.py`)
+### 6.2 k 범위 평가 (`k_range_evaluation.py`)
 
 ```bash
-python clustering_pipeline/k_range_evaluation.py --csv mendeley_v5.csv --k-min 3 --k-max 8 --csv-dir result/0402_csv --image-dir result/0402_image
+python clustering_pipeline/k_range_evaluation.py --csv baseline_train.csv --k-min 3 --k-max 8 --csv-dir result/0402_csv --image-dir result/0402_image
 ```
 
 옵션:
@@ -108,9 +157,10 @@ python clustering_pipeline/k_range_evaluation.py --csv mendeley_v5.csv --k-min 3
 - `result/0402_csv/kmeans_k_3_8_metrics.csv`
 - `result/0402_image/kmeans_elbow_like_k_3_8.png`
 
-## 6. 현재 결과 이미지 예시
+## 7. (옵션) 현재 결과 이미지 예시
 
-아래 이미지는 현재 폴더의 `result/0402_image/`에 저장된 결과를 그대로 참조합니다.
+선택 사항입니다. 시각화 결과가 필요할 때만 확인하세요.
+아래 이미지는 `result/` 하위에 저장된 결과를 그대로 참조합니다.
 
 ![Derived feature histograms](result/0402_image/derived_feature_histograms.png)
 
@@ -118,7 +168,7 @@ python clustering_pipeline/k_range_evaluation.py --csv mendeley_v5.csv --k-min 3
 
 ![KMeans clusters on derived features](result/0402_image/kmeans_focus_switch_clusters.png)
 
-## 7. 해석 팁
+## 8. 해석 팁
 
 - 실루엣 점수는 군집 분리/응집이 좋을수록 상승합니다.
 - DBI는 군집 간 분리가 좋고 군집 내부 응집이 높을수록 감소합니다.
