@@ -1,0 +1,5 @@
+dataset,cluster,count,ratio
+baseline_train,0,418,0.3250388802488336
+baseline_train,1,222,0.17262830482115085
+baseline_train,2,306,0.2379471228615863
+baseline_train,3,340,0.2643856920684292

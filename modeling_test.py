@@ -76,14 +76,6 @@ def fit_cluster_model(
     if model_name == "kmeans":
         model = KMeans(n_clusters=n_clusters, random_state=RANDOM_STATE, n_init="auto")
         display_name = "KMeans"
-    # elif model_name == "minibatch":
-    #     model = MiniBatchKMeans(
-    #         n_clusters=n_clusters,
-    #         random_state=RANDOM_STATE,
-    #         n_init="auto",
-    #         batch_size=1024,
-    #     )
-    #     display_name = "MiniBatchKMeans"
     else:
         raise ValueError(f"Unsupported model_name: {model_name}")
 

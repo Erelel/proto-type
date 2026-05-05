@@ -3,6 +3,7 @@ c:/Users/username/Desktop/folder/qwer/.venv/Scripts/python.exe clustering_pipeli
 """
 
 import argparse
+import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -13,6 +14,7 @@ from constants import (
     DEFAULT_MAIN_CSV,
     DEFAULT_N_CLUSTERS,
     MINMAX_FEATURE_RANGE,
+    PIPELINE_DIR,
     resolve_project_path,
 )
 from preprocessing import (
@@ -91,6 +93,18 @@ def main(
     minmax_centroids_original = minmax_scaler.inverse_transform(
         minmax_kmeans["model"].cluster_centers_
     )
+
+    model_params = {
+        "scaler": {
+            "data_min": minmax_scaler.data_min_.tolist(),
+            "data_max": minmax_scaler.data_max_.tolist(),
+        },
+        "centroids": minmax_kmeans["model"].cluster_centers_.tolist(),
+        "log_transform_applied": train_metadata["log_transform_applied"],
+    }
+    params_output = PIPELINE_DIR / "model_params.json"
+    with params_output.open("w", encoding="utf-8") as file:
+        json.dump(model_params, file, ensure_ascii=True, indent=2)
 
     derived_hist_output = output_dir / "derived_feature_histograms.png"
     minmax_hist_output = output_dir / "derived_feature_histograms_minmax.png"
@@ -234,6 +248,7 @@ def main(
     print(f"Cluster distribution CSV: {cluster_distribution_output}")
     print(f"Derived histogram image: {derived_hist_output}")
     print(f"MinMax histogram image: {minmax_hist_output}")
+    print(f"Model params JSON: {params_output}")
     print(f"KMeans scatter image (baseline): {cluster_output}")
     if collected_csv_path is not None:
         print(f"KMeans scatter image (collected): {collected_cluster_output}")
