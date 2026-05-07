@@ -10,8 +10,17 @@ from constants import DEFAULT_MAIN_CSV, DEFAULT_N_CLUSTERS, PIPELINE_DIR, resolv
 from modeling import fit_cluster_model
 from preprocessing import build_minmax_pipeline, load_and_preprocess
 
+import firebase_admin
+from firebase_admin import credentials, firestore
+
 
 MODEL_PARAMS_PATH = PIPELINE_DIR / "model_params.json"
+
+# 1. Firebase 초기화 (전역 설정: 스크립트 실행 시 1회만 동작)
+# 경로에 serviceAccountKey.json 파일이 존재하는지 반드시 확인하십시오.
+cred = credentials.Certificate("serviceAccountKey.json") 
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 
 def _load_model_params(path: Path) -> dict:
@@ -71,7 +80,12 @@ def update_centroids(
     }
     params["log_transform_applied"] = train_metadata["log_transform_applied"]
 
+    # 2. 로컬 백업: 기존처럼 로컬 PC에 json 파일로 저장
     _save_model_params(params_path, params)
+
+    # 3. 클라우드 갱신: 완성된 params를 Firestore DB에 즉시 덮어쓰기 (위치 이동)
+    db.collection('system_parameters').document('kmeans_v1').set(params)
+    print("성공적으로 새 모델 파라미터가 로컬 백업 및 Firestore에 모두 업데이트되었습니다!")
 
 
 if __name__ == "__main__":

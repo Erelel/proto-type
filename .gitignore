@@ -1,0 +1,5 @@
+﻿__pycache__/
+
+# API credential file (do not commit)
+serviceAccountKey.json
+*serviceAccountKey*
