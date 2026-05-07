@@ -3,10 +3,10 @@ c:/Users/username/Desktop/folder/qwer/.venv/Scripts/python.exe clustering_pipeli
 """
 
 import argparse
-import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from sklearn.metrics import davies_bouldin_score, silhouette_score
 
 from constants import (
@@ -14,14 +14,15 @@ from constants import (
     DEFAULT_MAIN_CSV,
     DEFAULT_N_CLUSTERS,
     MINMAX_FEATURE_RANGE,
-    PIPELINE_DIR,
     resolve_project_path,
 )
-from preprocessing import (
-    build_minmax_pipeline,
-    load_and_preprocess,
+from firestore_model_store import (
+    SYSTEM_PARAMS_COLLECTION,
+    SYSTEM_PARAMS_DOC,
+    save_model_params_to_db,
 )
 from modeling import fit_cluster_model
+from preprocessing import build_minmax_pipeline, load_and_preprocess
 from visualization import (
     plot_derived_feature_histograms,
     plot_kmeans_clusters_on_derived_features,
@@ -102,9 +103,7 @@ def main(
         "centroids": minmax_kmeans["model"].cluster_centers_.tolist(),
         "log_transform_applied": train_metadata["log_transform_applied"],
     }
-    params_output = PIPELINE_DIR / "model_params.json"
-    with params_output.open("w", encoding="utf-8") as file:
-        json.dump(model_params, file, ensure_ascii=True, indent=2)
+    save_model_params_to_db(model_params)
 
     derived_hist_output = output_dir / "derived_feature_histograms.png"
     minmax_hist_output = output_dir / "derived_feature_histograms_minmax.png"
@@ -248,7 +247,10 @@ def main(
     print(f"Cluster distribution CSV: {cluster_distribution_output}")
     print(f"Derived histogram image: {derived_hist_output}")
     print(f"MinMax histogram image: {minmax_hist_output}")
-    print(f"Model params JSON: {params_output}")
+    print(
+        "Model params Firestore document: "
+        f"{SYSTEM_PARAMS_COLLECTION}/{SYSTEM_PARAMS_DOC}"
+    )
     print(f"KMeans scatter image (baseline): {cluster_output}")
     if collected_csv_path is not None:
         print(f"KMeans scatter image (collected): {collected_cluster_output}")

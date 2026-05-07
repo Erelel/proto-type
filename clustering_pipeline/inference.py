@@ -1,14 +1,6 @@
-import json
 import math
-from pathlib import Path
-from typing import Any
 
-MODEL_PARAMS_PATH = Path(__file__).resolve().parent / "model_params.json"
-
-
-def _load_model_params(path: Path) -> dict:
-    with path.open("r", encoding="utf-8") as file:
-        return json.load(file)
+from model_params_utils import normalize_model_params
 
 
 def _derive_features(payload: dict, use_log_transform: bool) -> dict:
@@ -17,11 +9,9 @@ def _derive_features(payload: dict, use_log_transform: bool) -> dict:
     concentration_ratio = float(payload["concentration_ratio"])
 
     if use_log_transform:
-        # Core math: log1p transform to stabilize skewed input values.
         duration_base = math.log1p(duration_base)
         switch_base = math.log1p(switch_base)
 
-    # Core math: derived features from duration/switch weighted by concentration ratio.
     focus_intensity = duration_base * concentration_ratio
     switch_frequency = switch_base * (1.0 - concentration_ratio)
 
@@ -32,21 +22,21 @@ def _derive_features(payload: dict, use_log_transform: bool) -> dict:
 
 
 def _minmax_scale(value: float, data_min: float, data_max: float) -> float:
-    # Core math: manual MinMax scaling without sklearn.
     denom = data_max - data_min
     if denom == 0:
         return 0.0
     return (value - data_min) / denom
 
 
-def _assign_cluster(scaled_vector: list[float], centroids: list[list[float]]) -> tuple[int, float]:
+def _assign_cluster(
+    scaled_vector: list[float], centroids: list[list[float]]
+) -> tuple[int, float]:
     best_idx = -1
     best_distance = float("inf")
 
     for idx, centroid in enumerate(centroids):
         dx = scaled_vector[0] - float(centroid[0])
         dy = scaled_vector[1] - float(centroid[1])
-        # Core math: Euclidean distance to each centroid.
         distance = math.sqrt(dx * dx + dy * dy)
         if distance < best_distance:
             best_distance = distance
@@ -55,9 +45,8 @@ def _assign_cluster(scaled_vector: list[float], centroids: list[list[float]]) ->
     return best_idx, best_distance
 
 
-def infer_cluster(payload: dict, params_path: Path | None = None) -> dict:
-    params_path = params_path or MODEL_PARAMS_PATH
-    params = _load_model_params(params_path)
+def infer_cluster(payload: dict, params: dict) -> dict:
+    params = normalize_model_params(params)
 
     features = _derive_features(payload, params["log_transform_applied"])
     data_min = params["scaler"]["data_min"]
