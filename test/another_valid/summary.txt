@@ -1,0 +1,6 @@
+figure_path=kmeans_k4_validation.png
+data_path=l_shaped_sessions.npy
+metrics_path=kmeans_ch_scores.csv
+k4_ch_index=31398.777457
+weighted_f1=1.000000
+best_k_by_ch=4

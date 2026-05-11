@@ -1,0 +1,8 @@
+figure_path=real_data_validation.png
+ch_csv_path=real_data_ch_scores.csv
+source_csv=merged.csv
+n_rows=5490
+log_transform_applied=True
+k4_ch_index=7728.270581
+best_k_by_ch=8
+weighted_f1=0.962403

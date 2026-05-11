@@ -1,2 +1,0 @@
-dataset,source_csv,n_rows,scaler,feature_range,model,n_clusters,silhouette,davies_bouldin,note
-baseline_train,merged.csv,5490,minmax,"(0.0, 1.0)",KMeans,4,0.4612609277486844,0.744121965648486,
