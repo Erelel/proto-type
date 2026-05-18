@@ -1,0 +1,6 @@
+max_depth,weighted_f1_surrogate_fidelity,interpretation
+1,0.5062703026147147,"This is pseudo-label reproducibility by a shallow proxy model, not clustering accuracy against external ground truth. K-means pseudo-labels are generated from the training split only."
+2,0.7832445864428031,"This is pseudo-label reproducibility by a shallow proxy model, not clustering accuracy against external ground truth. K-means pseudo-labels are generated from the training split only."
+3,0.9631322313396148,"This is pseudo-label reproducibility by a shallow proxy model, not clustering accuracy against external ground truth. K-means pseudo-labels are generated from the training split only."
+4,0.9689725841765766,"This is pseudo-label reproducibility by a shallow proxy model, not clustering accuracy against external ground truth. K-means pseudo-labels are generated from the training split only."
+5,0.9778441679839057,"This is pseudo-label reproducibility by a shallow proxy model, not clustering accuracy against external ground truth. K-means pseudo-labels are generated from the training split only."

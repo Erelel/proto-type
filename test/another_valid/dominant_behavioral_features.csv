@@ -1,0 +1,9 @@
+cluster_id,rank,feature,centroid_minus_global_mean,standardized_directional_delta,direction,interpretation
+0,1,switch_frequency,-0.7065144198608772,-0.7278585075667379,below_global_mean,"Dominant features are centroid deviations from the global behavioral baseline, not causal explanations."
+0,2,focus_intensity,-1.0696676151657707,-0.6175208511426465,below_global_mean,"Dominant features are centroid deviations from the global behavioral baseline, not causal explanations."
+1,1,switch_frequency,0.5054262113147222,0.5206953425311334,above_global_mean,"Dominant features are centroid deviations from the global behavioral baseline, not causal explanations."
+1,2,focus_intensity,-0.24879275681208535,-0.14362846249291658,below_global_mean,"Dominant features are centroid deviations from the global behavioral baseline, not causal explanations."
+2,1,switch_frequency,1.8290819219865577,1.8843392300706205,above_global_mean,"Dominant features are centroid deviations from the global behavioral baseline, not causal explanations."
+2,2,focus_intensity,-1.4861109937376789,-0.8579342898056378,below_global_mean,"Dominant features are centroid deviations from the global behavioral baseline, not causal explanations."
+3,1,focus_intensity,2.194615293475963,1.2669549725013611,above_global_mean,"Dominant features are centroid deviations from the global behavioral baseline, not causal explanations."
+3,2,switch_frequency,-0.580497503038331,-0.5980345684818404,below_global_mean,"Dominant features are centroid deviations from the global behavioral baseline, not causal explanations."
