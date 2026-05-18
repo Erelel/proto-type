@@ -1,0 +1,95 @@
+{
+  "config": {
+    "csv_path": "C:\\Users\\yhy06\\Desktop\\folder\\proto-type\\gd_05181312.csv",
+    "n_clusters": 4,
+    "random_state": 42,
+    "n_init": 20,
+    "k_min": 2,
+    "k_max": 8,
+    "include_silhouette_reference": true,
+    "surrogate_test_size": 0.2,
+    "surrogate_depth_min": 1,
+    "surrogate_depth_max": 5,
+    "stability_seeds": [
+      7,
+      13,
+      21,
+      42,
+      101,
+      202,
+      303,
+      404,
+      505,
+      606
+    ],
+    "dominant_feature_top_n": 3
+  },
+  "dataset_metadata": {
+    "initial_rows": 7868,
+    "final_rows": 7868,
+    "dropped_nan_rows": 0,
+    "used_columns": [
+      "focus_intensity",
+      "switch_frequency"
+    ],
+    "source_skewness": {
+      "foreground_app_duration_sum": 8.750742336721054,
+      "foreground_app_switch_per_hour": 3.073979997124143
+    },
+    "skew_direction": {
+      "foreground_app_duration_sum": "right",
+      "foreground_app_switch_per_hour": "right"
+    },
+    "right_skew_flags": {
+      "foreground_app_duration_sum": true,
+      "foreground_app_switch_per_hour": true
+    },
+    "auto_log_transform": true,
+    "force_log_transform": null,
+    "log_transform_applied": true,
+    "log_transform_block_reason": null,
+    "source_csv": "C:\\Users\\yhy06\\Desktop\\folder\\proto-type\\gd_05181312.csv",
+    "n_rows_used_for_evaluation": 7868,
+    "feature_names": [
+      "focus_intensity",
+      "switch_frequency"
+    ],
+    "scaling": "MinMaxScaler fitted on derived behavioral features"
+  },
+  "internal_evaluation": {
+    "selected_k": 4,
+    "selected_k_ch_index_model_consistent": 11421.358901342588,
+    "selected_k_silhouette_reference_only": 0.4771529741958796,
+    "selected_k_davies_bouldin_index_reference_only": 0.7037078664887907,
+    "best_k_by_ch_index": 8,
+    "selected_k_ch_rank": 5,
+    "selected_k_is_best_by_ch_index": false,
+    "warning": "Do not present CH Index as universal cluster validity. It is an internal, variance-ratio criterion aligned with centroid-based K-means."
+  },
+  "surrogate_evaluation": {
+    "selected_depth": 3,
+    "selected_depth_weighted_f1_surrogate_fidelity": 0.9631322313396148,
+    "best_depth_by_weighted_f1": 5,
+    "best_weighted_f1_surrogate_fidelity": 0.9778441679839057,
+    "feature_importance": {
+      "switch_frequency": 0.6315209195241831,
+      "focus_intensity": 0.3684790804758168
+    },
+    "warning": "Surrogate F1 measures how well a shallow tree reproduces K-means assignments. It does not validate the semantic reality of personas."
+  },
+  "stability_evaluation": {
+    "reference_seed": 42,
+    "mean_ari_against_reference": 0.9921405015102991,
+    "min_ari_against_reference": 0.9834447205383384,
+    "mean_label_agreement_after_centroid_alignment": 0.997119132350449,
+    "mean_aligned_centroid_drift": 0.0012035939561709202,
+    "max_aligned_centroid_drift": 0.004447480626091413,
+    "warning": "High stability supports operational reproducibility, but it is not external validation of natural clusters. Aggregate means exclude the reference seed to avoid artificial inflation."
+  },
+  "explainability": {
+    "cluster_count": 4,
+    "feature_count": 2,
+    "dominant_feature_top_n": 3,
+    "warning": "Cluster profiles and dominant features support persona interpretation, but should be reviewed with domain knowledge before naming personas."
+  }
+}
